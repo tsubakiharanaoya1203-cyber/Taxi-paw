@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>タクシー売上管理</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        /* iOS/iPadOS タップ安定化 */
+        .select-btn, button, .keypad-btn {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .layout-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .layout-left {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .layout-right {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        /* 音声コントロール */
+        .voice-control {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .voice-toggle-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .voice-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .voice-toggle-btn.listening {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .voice-status-text {
+            display: block;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #667eea;
+            min-height: 20px;
+        }
+
+        /* 選択ボタングループ */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .select-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .select-btn {
+            background: #f0f0f0;
+            border: 2px solid #e0e0e0;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .select-btn:hover {
+            background: #e8e8e8;
+            border-color: #667eea;
+        }
+
+        .select-btn.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        /* 金額入力エリア */
+        .amount-group {
+            margin-bottom: 16px;
+        }
+
+        .amount-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+            color: #333;
+        }
+
+        .amount-input-wrapper {
+            position: relative;
+        }
+
+        .amount-display {
+            width: 100%;
+            padding: 12px;
+            font-size: 20px;
+            text-align: right;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .amount-display:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        .amount-display.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* テンキートグルボタン */
+        .numpad-toggle-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .numpad-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        /* テンキー */
+        .numpad {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .numpad-btn {
+            padding: 16px;
+            font-size: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .numpad-btn:hover {
+            background: #f0f4ff;
+            border-color: #667eea;
+        }
+
+        .numpad-btn:active {
+            transform: scale(0.95);
+        }
+
+        .numpad-btn.span-2 {
+            grid-column: span 2;
+        }
+
+        /* その他の入力欄 */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* ボタン */
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            margin-top: 16px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-clear {
+            width: 100%;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+
+        .btn-clear:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        /* 履歴一覧 */
+        .rides-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .ride-item {
+            background: #f9f9f9;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .ride-item:hover {
+            background: #f0f4ff;
+            transform: translateX(4px);
+        }
+
+        .ride-time {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .ride-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .ride-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .ride-discount {
+            background: #f5576c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        /* 確認ダイアログ */
+        .confirm-dialog {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-dialog.show {
+            display: flex;
+        }
+
+        .confirm-content {
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .confirm-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        .confirm-details {
+            margin-bottom: 24px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #666;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .confirm-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .confirm-btn-yes {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .confirm-btn-yes:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .confirm-btn-no {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .confirm-btn-no:hover {
+            background: #e0e0e0;
+        }
+
+        /* スナックバー */
+        .snackbar {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: bottom 0.3s ease;
+            z-index: 1001;
+        }
+
+        .snackbar.show {
+            bottom: 20px;
+        }
+
+        .snackbar-undo {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 899px) {
+            .layout-container {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 599px) {
+            .layout-left {
+                display: none;
+            }
+
+            .app-container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    
+        /* iOS/iPadOS タップ最適化 */
+        button, .select-btn, .key-btn {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>🚕 タクシー売上管理</h1>
+        </header>
+
+        <div class="layout-container">
+            <!-- 左側：履歴一覧 -->
+            <div class="layout-left">
+                <h2>📋 乗車履歴</h2>
+                <div id="ridesHistory" class="rides-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div>乗車履歴がありません</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側：1乗車入力 -->
+            <div class="layout-right">
+                <h2>📝 日報入力</h2>
+
+                <!-- 音声コントロール -->
+                <div class="voice-control">
+                    <button type="button" class="voice-toggle-btn" id="voiceToggleBtn" onclick="toggleVoiceInput()">
+                        <span id="voiceToggleIcon">🎤</span>
+                        <span id="voiceToggleText">音声入力開始</span>
+                    </button>
+                    <span id="voiceStatusText" class="voice-status-text">音声入力待機中...</span>
+                </div>
+
+                <form id="rideForm">
+                    <!-- 乗車種別 -->
+                    <div class="form-group">
+                        <label>乗車種別</label>
+                        <div class="select-buttons">
+                            <button type="button" class="select-btn" data-field="rideType" data-value="無線">無線</button>
+                            <button type="button" class="select-btn" data-field="rideType" data-value="付待">付待</button>
+                            <button type="button" class="select-btn" data-field="rideType" data-value="流し">流し</button>
+                            <button type="button" class="select-btn" data-field="rideType" data-value="乗場">乗場</button>
+                            <button type="button" class="select-btn" data-field="rideType" data-value="連続">連続</button>
+                            <button type="button" class="select-btn" data-field="rideType" data-value="会社">会社</button>
+                            <button type="button" class="select-btn" data-field="rideType" data-value="予約">予約</button>
+                            <button type="button" class="select-btn" data-field="rideType" data-value="GO">GO</button>
+                        </div>
+                    </div>
+
+                    <!-- 支払方法 -->
+                    <div class="form-group">
+                        <label>支払方法</label>
+                        <div class="select-buttons">
+                            <button type="button" class="select-btn" data-field="paymentType" data-value="現金">現金</button>
+                            <button type="button" class="select-btn" data-field="paymentType" data-value="QR Code">QR Code</button>
+                            <button type="button" class="select-btn" data-field="paymentType" data-value="GO Pay">GO Pay</button>
+                            <button type="button" class="select-btn" data-field="paymentType" data-value="乗込GO Pay">乗込GO Pay</button>
+                            <button type="button" class="select-btn" data-field="paymentType" data-value="クレジット">クレジット</button>
+                            <button type="button" class="select-btn" data-field="paymentType" data-value="電子マネー">電子マネー</button>
+                            <button type="button" class="select-btn" data-field="paymentType" data-value="チケット他">チケット他</button>
+                        </div>
+                    </div>
+
+                    <!-- チケットサブタイプ（チケット他選択時のみ表示） -->
+                    <div class="form-group" id="ticketSubTypeGroup" style="display: none;">
+                        <label>チケット種別</label>
+                        <div class="select-buttons">
+                            <button type="button" class="select-btn" data-field="ticketSubType" data-value="チケットA">チケットA</button>
+                            <button type="button" class="select-btn" data-field="ticketSubType" data-value="自社チケット">自社チケット</button>
+                            <button type="button" class="select-btn" data-field="ticketSubType" data-value="JCBチケット">JCBチケット</button>
+                            <button type="button" class="select-btn" data-field="ticketSubType" data-value="チケットその他">チケットその他</button>
+                            <button type="button" class="select-btn" data-field="ticketSubType" data-value="福祉チケット">福祉チケット</button>
+                            <button type="button" class="select-btn" data-field="ticketSubType" data-value="社内扱い">社内扱い</button>
+                            <button type="button" class="select-btn" data-field="ticketSubType" data-value="その他">その他</button>
+                        </div>
+                    </div>
+
+                    <!-- 金額入力エリア -->
+                    <div id="amountInputArea" style="display: none;">
+                        <!-- 現収 -->
+                        <div class="amount-group" id="cashAmountGroup" style="display: none;">
+                            <label class="amount-label">現収</label>
+                            <div class="amount-input-wrapper">
+                                <input type="text" class="amount-display" id="cashAmountDisplay" value="0" readonly onclick="selectAmountField('cash')">
+                            </div>
+                        </div>
+
+                        <!-- 未収 -->
+                        <div class="amount-group" id="unpaidAmountGroup" style="display: none;">
+                            <label class="amount-label">未収</label>
+                            <div class="amount-input-wrapper">
+                                <input type="text" class="amount-display" id="unpaidAmountDisplay" value="0" readonly onclick="selectAmountField('unpaid')">
+                            </div>
+                        </div>
+
+                        <!-- テンキートグルボタン -->
+                        <button type="button" class="numpad-toggle-btn" onclick="toggleNumpad()">
+                            <span id="numpadToggleText">テンキーを開く</span>
+                        </button>
+
+                        <!-- テンキー -->
+                        <div class="numpad" id="numpad">
+                            <button type="button" class="numpad-btn" onclick="addDigit('1')">1</button>
+                            <button type="button" class="numpad-btn" onclick="addDigit('2')">2</button>
+                            <button type="button" class="numpad-btn" onclick="addDigit('3')">3</button>
+                            <button type="button" class="numpad-btn" onclick="addDigit('4')">4</button>
+                            <button type="button" class="numpad-btn" onclick="addDigit('5')">5</button>
+                            <button type="button" class="numpad-btn" onclick="addDigit('6')">6</button>
+                            <button type="button" class="numpad-btn" onclick="addDigit('7')">7</button>
+                            <button type="button" class="numpad-btn" onclick="addDigit('8')">8</button>
+                            <button type="button" class="numpad-btn" onclick="addDigit('9')">9</button>
+                            <button type="button" class="numpad-btn" onclick="deleteDigit()">削除</button>
+                            <button type="button" class="numpad-btn" onclick="addDigit('0')">0</button>
+                            <button type="button" class="numpad-btn" onclick="confirmAmount()">確定</button>
+                        </div>
+                    </div>
+
+                    <!-- 障害割引 -->
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="isDisabledDiscount">
+                        <label for="isDisabledDiscount">障害割引</label>
+                    </div>
+
+                    <!-- 備考 -->
+                    <div class="form-group">
+                        <label>備考</label>
+                        <textarea id="rideMemo" placeholder="メモを入力..."></textarea>
+                    </div>
+
+                    <!-- クリアボタン -->
+                    <button type="button" class="btn-clear" onclick="showClearConfirmDialog()">🗑️ 入力をクリア</button>
+
+                    <!-- 登録ボタン -->
+                    <button type="submit" class="btn-primary">登録</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認ダイアログ -->
+    <div id="confirmDialog" class="confirm-dialog">
+        <div class="confirm-content">
+            <div class="confirm-title">登録しますか？</div>
+            <div id="confirmDetails" class="confirm-details"></div>
+            <div class="confirm-buttons">
+                <button class="confirm-btn confirm-btn-no" onclick="closeConfirmDialog()">いいえ</button>
+                <button class="confirm-btn confirm-btn-yes" onclick="confirmRegister()">はい</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- クリア確認ダイアログ -->
+    <div id="clearConfirmDialog" class="confirm-dialog">
+        <div class="confirm-content">
+            <div class="confirm-title">入力内容をクリアしますか？</div>
+            <div class="confirm-buttons">
+                <button class="confirm-btn confirm-btn-no" onclick="closeClearConfirmDialog()">いいえ</button>
+                <button class="confirm-btn confirm-btn-yes" onclick="executeClear()">はい</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- スナックバー -->
+    <div id="snackbar" class="snackbar">
+        <span id="snackbarMessage">登録しました</span>
+        <button id="snackbarUndo" class="snackbar-undo">取り消し</button>
+    </div>
+
+    <script>
+        // データストレージ
+        const RIDES_STORAGE_KEY = 'taxiRidesData';
+        
+        // 現在の入力状態
+        let currentRideInput = {
+            rideType: '',
+            paymentType: '',
+            ticketSubType: null,
+            cashAmount: null,
+            unpaidAmount: null,
+            currentAmountField: null, // 'cash' or 'unpaid'
+            currentAmountValue: '0'
+        };
+
+        // 音声認識
+        let voiceRecognition = null;
+        let isVoiceActive = false;
+        let voiceRestartTimer = null;
+        let voiceStarting = false;
+        let voicePermissionBlocked = false;
+        let voiceInputState = {
+            hasRideType: false,
+            hasPaymentType: false,
+            hasAmount: false
+        };
+
+        // 音声認識辞書
+        const voiceDictionary = {
+            rideType: {
+                '無線': '無線',
+                'むせん': '無線',
+                '付待': '付待',
+                'つけまち': '付待',
+                '流し': '流し',
+                'ながし': '流し',
+                '乗場': '乗場',
+                'のりば': '乗場',
+                '連続': '連続',
+                'れんぞく': '連続',
+                '会社': '会社',
+                'かいしゃ': '会社',
+                '予約': '予約',
+                'よやく': '予約',
+                'GO': 'GO',
+                'ゴー': 'GO'
+            },
+            paymentType: {
+                '現金': '現金',
+                'げんきん': '現金',
+                'キャッシュ': '現金',
+                'QRコード': 'QR Code',
+                'QR': 'QR Code',
+                'キューアール': 'QR Code',
+                'GO Pay': 'GO Pay',
+                'ゴーペイ': 'GO Pay',
+                '乗込GO Pay': '乗込GO Pay',
+                'のりこみゴーペイ': '乗込GO Pay',
+                'クレジット': 'クレジット',
+                'クレカ': 'クレジット',
+                '電子マネー': '電子マネー',
+                'でんしまねー': '電子マネー',
+                'チケット他': 'チケット他',
+                'チケット': 'チケット他'
+            }
+        };
+
+        // スナックバー管理
+        let snackbarTimeout = null;
+        let lastRegisteredRide = null;
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            // iPad/iPhoneで「タップしても反応しない」対策：
+            // 先に全ボタンのイベントを登録し、後続の初期化エラーで全停止しないようにする
+            function bindTap(el, handler) {
+                if (!el) return;
+
+                // iOS/iPadOSで「タップしたのに反応しない」を潰すための簡易タップ判定
+                // ・少し指がズレてスクロール判定になるとclickが落ちることがある
+                // ・touchendで「移動なし」のときだけ確定し、preventDefaultでゴーストclickも抑止
+                let touchMoved = false;
+
+                el.addEventListener('touchstart', function() {
+                    touchMoved = false;
+                }, { passive: true });
+
+                el.addEventListener('touchmove', function() {
+                    touchMoved = true;
+                }, { passive: true });
+
+                el.addEventListener('touchend', function(e) {
+                    if (touchMoved) return;
+                    try { e.preventDefault(); } catch (_) {}
+                    handler.call(this, e);
+                }, { passive: false });
+
+                // マウス/トラックパッド用
+                el.addEventListener('click', function(e) {
+                    handler.call(this, e);
+                });
+
+                // 追加の保険（ペン等）
+                el.addEventListener('pointerup', function(e) {
+                    if (e && e.pointerType === 'touch') return; // touchはtouchendで処理済み
+                    handler.call(this, e);
+                });
+            }
+
+            // 選択ボタンのイベントリスナー
+            document.querySelectorAll('.select-btn').forEach(btn => {
+                bindTap(btn, function() {
+                    const field = this.dataset.field;
+                    const value = this.dataset.value;
+                    handleSelection(field, value, this);
+                });
+            });
+
+            // 初期化（失敗してもUI操作は止めない）
+            try { initVoiceRecognition(); } catch (e) { console.error(e); }
+            try { renderRides(); } catch (e) { console.error(e); }
+
+            // フォーム送信
+            document.getElementById('rideForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // バリデーション
+                if (!currentRideInput.rideType) {
+                    alert('乗車種別を選択してください');
+                    return;
+                }
+                if (!currentRideInput.paymentType) {
+                    alert('支払方法を選択してください');
+                    return;
+                }
+                if (currentRideInput.cashAmount === null && currentRideInput.unpaidAmount === null) {
+                    alert('金額を入力してください');
+                    return;
+                }
+
+                showConfirmDialog();
+            });
+
+            // Undo ボタン
+            document.getElementById('snackbarUndo').addEventListener('click', handleUndo);
+        });
+
+        // 音声認識初期化
+        function initVoiceRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                document.getElementById('voiceStatusText').textContent = '音声認識非対応';
+                document.getElementById('voiceToggleBtn').disabled = true;
+                return;
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            voiceRecognition = new SpeechRecognition();
+            voiceRecognition.lang = 'ja-JP';
+            voiceRecognition.continuous = true;
+            voiceRecognition.interimResults = false;
+
+            voiceRecognition.onresult = function(event) {
+                const transcript = event.results[event.results.length - 1][0].transcript.trim();
+                handleVoiceCommand(transcript);
+            };
+
+            voiceRecognition.onerror = function(event) {
+                voiceStarting = false;
+                
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    voicePermissionBlocked = true;
+                    isVoiceActive = false;
+                    
+                    if (voiceRestartTimer) {
+                        clearTimeout(voiceRestartTimer);
+                        voiceRestartTimer = null;
+                    }
+                    
+                    document.getElementById('voiceToggleBtn').classList.remove('listening');
+                    document.getElementById('voiceToggleIcon').textContent = '🎤';
+                    document.getElementById('voiceToggleText').textContent = '音声入力開始';
+                    updateVoiceStatusText('マイクの許可が必要です。手動で再開してください');
+                    return;
+                }
+                
+                if (event.error === 'no-speech') {
+                    updateVoiceStatusText('無音です。もう一度お話しください');
+                    if (isVoiceActive && !voiceRestartTimer && !voicePermissionBlocked) {
+                        voiceRestartTimer = setTimeout(() => {
+                            voiceRestartTimer = null;
+                            if (isVoiceActive && !voiceStarting && !voicePermissionBlocked) {
+                                voiceStarting = true;
+                                try {
+                                    voiceRecognition.start();
+                                } catch (e) {
+                                    console.log('Restart failed:', e);
+                                    voiceStarting = false;
+                                }
+                            }
+                        }, 900);
+                    }
+                    return;
+                }
+                
+                if (event.error === 'audio-capture') {
+                    updateVoiceStatusText('マイクが見つかりません');
+                } else {
+                    console.log('Voice error:', event.error);
+                    updateVoiceStatusText('エラー: ' + event.error);
+                }
+            };
+
+            voiceRecognition.onend = function() {
+                voiceStarting = false;
+                
+                if (isVoiceActive && !voiceRestartTimer && !voicePermissionBlocked) {
+                    voiceRestartTimer = setTimeout(() => {
+                        voiceRestartTimer = null;
+                        if (isVoiceActive && !voiceStarting && !voicePermissionBlocked) {
+                            voiceStarting = true;
+                            try {
+                                voiceRecognition.start();
+                            } catch (e) {
+                                console.log('Auto restart failed:', e);
+                                voiceStarting = false;
+                            }
+                        }
+                    }, 700);
+                }
+            };
+        }
+
+        // 音声入力トグル
+        function toggleVoiceInput() {
+            if (isVoiceActive) {
+                stopVoiceInput();
+            } else {
+                startVoiceInput();
+            }
+        }
+
+        function startVoiceInput() {
+            if (!voiceRecognition) return;
+            
+            voicePermissionBlocked = false;
+            
+            if (voiceRestartTimer) {
+                clearTimeout(voiceRestartTimer);
+                voiceRestartTimer = null;
+            }
+            
+            isVoiceActive = true;
+            
+            if (!voiceStarting) {
+                voiceStarting = true;
+                try {
+                    voiceRecognition.start();
+                } catch (e) {
+                    console.log('Start failed:', e);
+                    voiceStarting = false;
+                }
+            }
+            
+            document.getElementById('voiceToggleBtn').classList.add('listening');
+            document.getElementById('voiceToggleIcon').textContent = '🔴';
+            document.getElementById('voiceToggleText').textContent = '音声入力停止';
+            updateVoiceStatusText('音声入力中...');
+        }
+
+        function stopVoiceInput() {
+            if (!voiceRecognition) return;
+            
+            if (voiceRestartTimer) {
+                clearTimeout(voiceRestartTimer);
+                voiceRestartTimer = null;
+            }
+            
+            isVoiceActive = false;
+            voiceStarting = false;
+            
+            try {
+                voiceRecognition.stop();
+            } catch (e) {
+                console.log('Stop failed:', e);
+            }
+            
+            document.getElementById('voiceToggleBtn').classList.remove('listening');
+            document.getElementById('voiceToggleIcon').textContent = '🎤';
+            document.getElementById('voiceToggleText').textContent = '音声入力開始';
+            updateVoiceStatusText('音声入力待機中...');
+        }
+
+        function updateVoiceStatusText(text) {
+            document.getElementById('voiceStatusText').textContent = text;
+        }
+
+        // 音声コマンド処理
+        function handleVoiceCommand(transcript) {
+            console.log('音声入力:', transcript);
+            
+            // 数字の認識
+            const numMatch = transcript.match(/\d+/);
+            if (numMatch) {
+                const amount = parseInt(numMatch[0]);
+                handleVoiceAmount(amount);
+                return;
+            }
+
+            // 乗車種別の認識
+            for (const [keyword, value] of Object.entries(voiceDictionary.rideType)) {
+                if (transcript.includes(keyword)) {
+                    handleVoiceRideType(value);
+                    return;
+                }
+            }
+
+            // 支払方法の認識
+            for (const [keyword, value] of Object.entries(voiceDictionary.paymentType)) {
+                if (transcript.includes(keyword)) {
+                    handleVoicePaymentType(value);
+                    return;
+                }
+            }
+
+            updateVoiceStatusText('認識できませんでした。もう一度お願いします');
+        }
+
+        function handleVoiceRideType(value) {
+            const btn = document.querySelector(`.select-btn[data-field="rideType"][data-value="${value}"]`);
+            if (btn) {
+                btn.click();
+                voiceInputState.hasRideType = true;
+                updateVoiceStatusText(`乗車種別: ${value} → 支払い方法を教えてください`);
+            }
+        }
+
+        function handleVoicePaymentType(value) {
+            if (!voiceInputState.hasRideType) {
+                updateVoiceStatusText('先に乗車種別を教えてください');
+                return;
+            }
+
+            const btn = document.querySelector(`.select-btn[data-field="paymentType"][data-value="${value}"]`);
+            if (btn) {
+                btn.click();
+                voiceInputState.hasPaymentType = true;
+                updateVoiceStatusText(`支払方法: ${value} → 金額を教えてください`);
+            }
+        }
+
+        function handleVoiceAmount(amount) {
+            if (!voiceInputState.hasRideType) {
+                updateVoiceStatusText('先に乗車種別を教えてください');
+                return;
+            }
+            if (!voiceInputState.hasPaymentType) {
+                updateVoiceStatusText('先に支払い方法を教えてください');
+                return;
+            }
+
+            currentRideInput.currentAmountValue = amount.toString();
+            updateAmountDisplay();
+            confirmAmount();
+            
+            voiceInputState.hasAmount = true;
+            updateVoiceStatusText(`金額: ${amount}円 → 登録ボタンを押してください`);
+
+            // 全項目入力済みなら確認ダイアログ表示
+            if (voiceInputState.hasRideType && voiceInputState.hasPaymentType && voiceInputState.hasAmount) {
+                setTimeout(() => {
+                    showConfirmDialog();
+                }, 500);
+            }
+        }
+
+        // 選択処理
+        function handleSelection(field, value, button) {
+            // トグル処理：すでに選択中なら未選択に戻す
+            if (button.classList.contains('selected')) {
+                button.classList.remove('selected');
+                currentRideInput[field] = '';
+                
+                // 支払い方法が未選択に戻った場合の特殊処理
+                if (field === 'paymentType') {
+                    document.getElementById('amountInputArea').style.display = 'none';
+                    document.getElementById('cashAmountGroup').style.display = 'none';
+                    document.getElementById('unpaidAmountGroup').style.display = 'none';
+                    document.getElementById('ticketSubTypeGroup').style.display = 'none';
+                    currentRideInput.currentAmountField = null;
+                }
+                return;
+            }
+            
+            // 同じフィールドの選択を解除
+            document.querySelectorAll(`.select-btn[data-field="${field}"]`).forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // 選択状態にする
+            button.classList.add('selected');
+            currentRideInput[field] = value;
+
+            // 特殊処理
+            if (field === 'paymentType') {
+                updateAmountFields(value);
+            }
+            
+            // 自動スクロール：乗車種別と支払い方法が両方選択された場合
+            if (currentRideInput.rideType && currentRideInput.paymentType) {
+                setTimeout(() => {
+                    const cashGroup = document.getElementById('cashAmountGroup');
+                    const unpaidGroup = document.getElementById('unpaidAmountGroup');
+                    const amountArea = document.getElementById('amountInputArea');
+                    const ticketGroup = document.getElementById('ticketSubTypeGroup');
+
+                    let targetElement = null;
+
+                    // ★ チケット他の時：まだチケット種別が未選択なら、隠し項目（チケット種別）へスクロール
+                    if (currentRideInput.paymentType === 'チケット他' && !currentRideInput.ticketSubType) {
+                        if (ticketGroup && ticketGroup.style.display !== 'none') {
+                            targetElement = ticketGroup;
+                        }
+                    }
+
+                    // 通常：表示されている金額欄を優先（チケット種別選択後もここに来る）
+                    if (!targetElement) {
+                        if (cashGroup && cashGroup.style.display !== 'none') {
+                            targetElement = cashGroup;
+                        } else if (unpaidGroup && unpaidGroup.style.display !== 'none') {
+                            targetElement = unpaidGroup;
+                        } else if (amountArea && amountArea.style.display !== 'none') {
+                            targetElement = amountArea;
+                        }
+                    }
+
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 300); // updateAmountFields の表示処理完了を待つ
+            }
+        }
+
+        // 金額欄の表示切替
+        function updateAmountFields(paymentType) {
+            const amountInputArea = document.getElementById('amountInputArea');
+            const cashGroup = document.getElementById('cashAmountGroup');
+            const unpaidGroup = document.getElementById('unpaidAmountGroup');
+            const ticketGroup = document.getElementById('ticketSubTypeGroup');
+
+            amountInputArea.style.display = 'block';
+
+            if (paymentType === '現金') {
+                cashGroup.style.display = 'block';
+                unpaidGroup.style.display = 'none';
+                ticketGroup.style.display = 'none';
+                selectAmountField('cash');
+            } else if (paymentType === 'チケット他') {
+                cashGroup.style.display = 'block';
+                unpaidGroup.style.display = 'block';
+                ticketGroup.style.display = 'block';
+                selectAmountField('cash');
+            } else {
+                cashGroup.style.display = 'none';
+                unpaidGroup.style.display = 'block';
+                ticketGroup.style.display = 'none';
+                selectAmountField('unpaid');
+            }
+        }
+
+        // 金額欄の選択
+        function selectAmountField(field) {
+            currentRideInput.currentAmountField = field;
+            currentRideInput.currentAmountValue = '0';
+
+            // ハイライト
+            document.getElementById('cashAmountDisplay').classList.remove('selected');
+            document.getElementById('unpaidAmountDisplay').classList.remove('selected');
+            
+            if (field === 'cash') {
+                document.getElementById('cashAmountDisplay').classList.add('selected');
+                currentRideInput.currentAmountValue = currentRideInput.cashAmount?.toString() || '0';
+            } else if (field === 'unpaid') {
+                document.getElementById('unpaidAmountDisplay').classList.add('selected');
+                currentRideInput.currentAmountValue = currentRideInput.unpaidAmount?.toString() || '0';
+            }
+
+            updateAmountDisplay();
+
+            // テンキーを開く
+            const numpad = document.getElementById('numpad');
+            if (numpad.style.display === 'none' || numpad.style.display === '') {
+                toggleNumpad();
+            }
+        }
+
+        // テンキー開閉
+        function toggleNumpad() {
+            const numpad = document.getElementById('numpad');
+            const toggleText = document.getElementById('numpadToggleText');
+            
+            if (numpad.style.display === 'none' || numpad.style.display === '') {
+                numpad.style.display = 'grid';
+                toggleText.textContent = 'テンキーを閉じる';
+            } else {
+                numpad.style.display = 'none';
+                toggleText.textContent = 'テンキーを開く';
+            }
+        }
+
+        // テンキーを閉じる（確定時用）
+        function closeNumpad() {
+            const numpad = document.getElementById('numpad');
+            const toggleText = document.getElementById('numpadToggleText');
+            
+            numpad.style.display = 'none';
+            toggleText.textContent = 'テンキーを開く';
+        }
+
+        // 数字入力
+        function addDigit(digit) {
+            if (currentRideInput.currentAmountValue === '0') {
+                currentRideInput.currentAmountValue = digit;
+            } else {
+                currentRideInput.currentAmountValue += digit;
+            }
+            updateAmountDisplay();
+        }
+
+        function deleteDigit() {
+            if (currentRideInput.currentAmountValue.length > 1) {
+                currentRideInput.currentAmountValue = currentRideInput.currentAmountValue.slice(0, -1);
+            } else {
+                currentRideInput.currentAmountValue = '0';
+            }
+            updateAmountDisplay();
+        }
+
+        function updateAmountDisplay() {
+            const value = parseInt(currentRideInput.currentAmountValue) || 0;
+            const formatted = value.toLocaleString();
+
+            if (currentRideInput.currentAmountField === 'cash') {
+                document.getElementById('cashAmountDisplay').value = formatted;
+            } else if (currentRideInput.currentAmountField === 'unpaid') {
+                document.getElementById('unpaidAmountDisplay').value = formatted;
+            }
+        }
+
+        function confirmAmount() {
+            const value = parseInt(currentRideInput.currentAmountValue) || 0;
+
+            if (currentRideInput.currentAmountField === 'cash') {
+                currentRideInput.cashAmount = value;
+                updateVoiceStatusText(`現収: ${value}円を確定しました`);
+            } else if (currentRideInput.currentAmountField === 'unpaid') {
+                currentRideInput.unpaidAmount = value;
+                updateVoiceStatusText(`未収: ${value}円を確定しました`);
+            }
+
+            // チケット他の場合は未収欄も入力を促す
+            if (currentRideInput.paymentType === 'チケット他') {
+                if (currentRideInput.currentAmountField === 'cash' && currentRideInput.unpaidAmount === null) {
+                    selectAmountField('unpaid');
+                    updateVoiceStatusText('続けて未収を入力してください');
+                }
+            }
+            
+            // テンキーを閉じる
+            closeNumpad();
+        }
+
+        // 確認ダイアログ
+        function showConfirmDialog() {
+            const details = document.getElementById('confirmDetails');
+            let html = '';
+
+            html += `<div>乗車: ${currentRideInput.rideType}</div>`;
+            
+            let paymentText = currentRideInput.paymentType;
+            if (currentRideInput.ticketSubType) {
+                paymentText += ` (${currentRideInput.ticketSubType})`;
+            }
+            html += `<div>支払: ${paymentText}</div>`;
+
+            let amountText = '';
+            if (currentRideInput.cashAmount !== null && currentRideInput.unpaidAmount !== null) {
+                amountText = `現収: ${currentRideInput.cashAmount.toLocaleString()}円<br>未収: ${currentRideInput.unpaidAmount.toLocaleString()}円`;
+            } else if (currentRideInput.cashAmount !== null) {
+                amountText = `現収: ${currentRideInput.cashAmount.toLocaleString()}円`;
+            } else if (currentRideInput.unpaidAmount !== null) {
+                amountText = `未収: ${currentRideInput.unpaidAmount.toLocaleString()}円`;
+            }
+            html += `<div>金額: ${amountText}</div>`;
+
+            details.innerHTML = html;
+            document.getElementById('confirmDialog').classList.add('show');
+        }
+
+        function closeConfirmDialog() {
+            document.getElementById('confirmDialog').classList.remove('show');
+        }
+
+        function confirmRegister() {
+            // Ride データ作成
+            const ride = {
+                id: generateRideId(),
+                time: new Date().toISOString(),
+                rideType: currentRideInput.rideType,
+                paymentType: currentRideInput.paymentType,
+                ticketSubType: currentRideInput.ticketSubType,
+                cashAmount: currentRideInput.cashAmount,
+                unpaidAmount: currentRideInput.unpaidAmount,
+                isDisabledDiscount: document.getElementById('isDisabledDiscount').checked,
+                memo: document.getElementById('rideMemo').value
+            };
+
+            // 保存
+            const rides = loadRides();
+            rides.unshift(ride); // 最新を先頭に
+            saveRides(rides);
+
+            // 最後の登録を記憶
+            lastRegisteredRide = { ...ride, inputState: { ...currentRideInput } };
+
+            // ダイアログを閉じる
+            closeConfirmDialog();
+
+            // フォームリセット
+            resetRideForm();
+
+            // 履歴更新
+            renderRides();
+
+            // スナックバー表示
+            showSnackbar('✅ 1乗車を保存しました');
+        }
+
+        // ID生成
+        function generateRideId() {
+            return 'ride_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+        }
+
+        // ストレージ操作
+        function loadRides() {
+            const data = localStorage.getItem(RIDES_STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveRides(rides) {
+            localStorage.setItem(RIDES_STORAGE_KEY, JSON.stringify(rides));
+        }
+
+        // フォームリセット
+        function resetRideForm() {
+            // 入力状態をリセット
+            currentRideInput = {
+                rideType: '',
+                paymentType: '',
+                ticketSubType: null,
+                cashAmount: null,
+                unpaidAmount: null,
+                currentAmountField: null,
+                currentAmountValue: '0'
+            };
+
+            // UI リセット
+            document.querySelectorAll('.select-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            document.getElementById('ticketSubTypeGroup').style.display = 'none';
+            document.getElementById('amountInputArea').style.display = 'none';
+            document.getElementById('cashAmountGroup').style.display = 'none';
+            document.getElementById('unpaidAmountGroup').style.display = 'none';
+            
+            document.getElementById('cashAmountDisplay').value = '0';
+            document.getElementById('unpaidAmountDisplay').value = '0';
+            document.getElementById('cashAmountDisplay').classList.remove('selected');
+            document.getElementById('unpaidAmountDisplay').classList.remove('selected');
+
+            document.getElementById('isDisabledDiscount').checked = false;
+            document.getElementById('rideMemo').value = '';
+
+            // テンキーを閉じる
+            document.getElementById('numpad').style.display = 'none';
+            document.getElementById('numpadToggleText').textContent = 'テンキーを開く';
+
+            // 音声入力状態リセット
+            voiceInputState = {
+                hasRideType: false,
+                hasPaymentType: false,
+                hasAmount: false
+            };
+            updateVoiceStatusText('音声入力待機中...');
+        }
+
+        // 履歴表示
+        function renderRides() {
+            const rides = loadRides();
+            const container = document.getElementById('ridesHistory');
+
+            if (rides.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div>乗車履歴がありません</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            rides.forEach(ride => {
+                const time = new Date(ride.time);
+                const timeStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
+
+                let paymentText = ride.paymentType;
+                if (ride.ticketSubType) {
+                    paymentText += ` (${ride.ticketSubType})`;
+                }
+
+                let amountText = '';
+                if (ride.cashAmount !== null && ride.unpaidAmount !== null) {
+                    amountText = `現収${ride.cashAmount.toLocaleString()}円 / 未収${ride.unpaidAmount.toLocaleString()}円`;
+                } else if (ride.cashAmount !== null) {
+                    amountText = `現収${ride.cashAmount.toLocaleString()}円`;
+                } else if (ride.unpaidAmount !== null) {
+                    amountText = `未収${ride.unpaidAmount.toLocaleString()}円`;
+                }
+
+                const discountBadge = ride.isDisabledDiscount ? '<span class="ride-discount">障害割引</span>' : '';
+
+                html += `
+                    <div class="ride-item">
+                        <div class="ride-time">${timeStr}</div>
+                        <div class="ride-details">
+                            <span>${ride.rideType}</span>
+                            <span>${paymentText}</span>
+                            <span>${amountText}</span>
+                            ${discountBadge}
+                        </div>
+                        ${ride.memo ? `<div style="margin-top: 8px; font-size: 13px; color: #999;">${ride.memo}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // スナックバー
+        function showSnackbar(message) {
+            const snackbar = document.getElementById('snackbar');
+            document.getElementById('snackbarMessage').textContent = message;
+            
+            snackbar.classList.add('show');
+
+            if (snackbarTimeout) {
+                clearTimeout(snackbarTimeout);
+            }
+
+            snackbarTimeout = setTimeout(() => {
+                hideSnackbar();
+            }, 5000);
+        }
+
+        function hideSnackbar() {
+            document.getElementById('snackbar').classList.remove('show');
+        }
+
+        // Undo 処理
+        function handleUndo() {
+            if (!lastRegisteredRide) return;
+
+            // rides から削除
+            const rides = loadRides();
+            const index = rides.findIndex(r => r.id === lastRegisteredRide.id);
+            if (index !== -1) {
+                rides.splice(index, 1);
+                saveRides(rides);
+            }
+
+            // 入力状態を復元
+            currentRideInput = { ...lastRegisteredRide.inputState };
+
+            // UI復元
+            document.querySelectorAll('.select-btn').forEach(btn => {
+                const field = btn.dataset.field;
+                const value = btn.dataset.value;
+                if (currentRideInput[field] === value) {
+                    btn.classList.add('selected');
+                }
+            });
+
+            if (currentRideInput.paymentType) {
+                updateAmountFields(currentRideInput.paymentType);
+            }
+
+            if (currentRideInput.cashAmount !== null) {
+                document.getElementById('cashAmountDisplay').value = currentRideInput.cashAmount.toLocaleString();
+            }
+            if (currentRideInput.unpaidAmount !== null) {
+                document.getElementById('unpaidAmountDisplay').value = currentRideInput.unpaidAmount.toLocaleString();
+            }
+
+            document.getElementById('isDisabledDiscount').checked = lastRegisteredRide.isDisabledDiscount;
+            document.getElementById('rideMemo').value = lastRegisteredRide.memo || '';
+
+            // 入力タブに切り替え
+            renderRides();
+            hideSnackbar();
+
+            updateVoiceStatusText('取り消しました。修正して再登録できます');
+        }
+
+        // クリア確認ダイアログ
+        function showClearConfirmDialog() {
+            document.getElementById('clearConfirmDialog').classList.add('show');
+        }
+
+        function closeClearConfirmDialog() {
+            document.getElementById('clearConfirmDialog').classList.remove('show');
+        }
+
+        function executeClear() {
+            // 入力状態をリセット
+            currentRideInput = {
+                rideType: '',
+                paymentType: '',
+                ticketSubType: null,
+                cashAmount: null,
+                unpaidAmount: null,
+                currentAmountField: null,
+                currentAmountValue: '0'
+            };
+
+            // UIリセット
+            document.querySelectorAll('.select-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            document.getElementById('ticketSubTypeGroup').style.display = 'none';
+            document.getElementById('amountInputArea').style.display = 'none';
+            document.getElementById('cashAmountGroup').style.display = 'none';
+            document.getElementById('unpaidAmountGroup').style.display = 'none';
+
+            document.getElementById('cashAmountDisplay').value = '0';
+            document.getElementById('unpaidAmountDisplay').value = '0';
+            document.getElementById('cashAmountDisplay').classList.remove('selected');
+            document.getElementById('unpaidAmountDisplay').classList.remove('selected');
+
+            document.getElementById('isDisabledDiscount').checked = false;
+            document.getElementById('rideMemo').value = '';
+
+            // テンキーを閉じる
+            document.getElementById('numpad').style.display = 'none';
+            document.getElementById('numpadToggleText').textContent = 'テンキーを開く';
+
+            // 音声入力状態リセット
+            voiceInputState = {
+                hasRideType: false,
+                hasPaymentType: false,
+                hasAmount: false
+            };
+            updateVoiceStatusText('音声入力待機中...');
+
+            closeClearConfirmDialog();
+            showSnackbar('入力をクリアしました');
+        }
+
+        // PWA登録（http/https の場合のみ）
+        if (location.protocol === 'http:' || location.protocol === 'https:') {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').catch(err => {
+                    console.log('ServiceWorker registration failed:', err);
+                });
+            }
+        } else {
+            // file:// プロトコルの場合は manifest を削除
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink) {
+                manifestLink.remove();
+            }
+            console.log('PWA features disabled (file:// protocol)');
+        }
+    </script>
+</body>
+</html>
